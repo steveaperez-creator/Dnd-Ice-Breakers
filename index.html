@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dungeon Codex — Campaign Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark: #100d06; --panel: #1f1810; --border: #5a3e1b;
+      --gold: #c9921a; --gold-light: #e8b84b; --text: #e8d5b0;
+      --muted: #8a7556; --accent: #8b2020; --accent-light: #c0392b;
+      --green: #2ecc71; --blue: #3498db;
+    }
+    body { background: var(--dark); color: var(--text); font-family: 'Cinzel', serif; }
+    .app { display: flex; min-height: 100vh; flex-direction: column; }
+    .header {
+      background: linear-gradient(to right, var(--dark), var(--panel), var(--dark));
+      border-bottom: 2px solid var(--gold); padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(201,146,26,0.2);
+    }
+    .header h1 { font-family: 'Cinzel Decorative', cursive; font-size: 1.4rem; color: var(--gold-light); letter-spacing: 2px; text-shadow: 0 0 20px rgba(201,146,26,0.6); }
+    .header-subtitle { font-family: 'IM Fell English', serif; font-style: italic; color: var(--muted); font-size: 0.85rem; }
+    .nav { background: var(--panel); border-bottom: 1px solid var(--border); display: flex; gap: 2px; padding: 0 16px; overflow-x: auto; }
+    .nav-btn { background: none; border: none; cursor: pointer; padding: 12px 20px; font-family: 'Cinzel', serif; font-size: 0.78rem; letter-spacing: 1px; color: var(--muted); border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
+    .nav-btn:hover { color: var(--gold-light); }
+    .nav-btn.active { color: var(--gold-light); border-bottom-color: var(--gold); }
+    .content { flex: 1; padding: 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
+    .section-title { font-family: 'Cinzel Decorative', cursive; font-size: 1rem; color: var(--gold); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 20px; letter-spacing: 2px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 16px; position: relative; transition: border-color 0.2s; }
+    .card::before { content: ''; position: absolute; inset: 0; border-radius: 4px; background: linear-gradient(135deg, rgba(201,146,26,0.04) 0%, transparent 60%); pointer-events: none; }
+    .card:hover { border-color: var(--gold); }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 0.7rem; letter-spacing: 1px; border: 1px solid currentColor; font-family: 'Cinzel', serif; }
+    .btn { background: linear-gradient(to bottom, #2a1f0a, #1a1208); border: 1px solid var(--gold); color: var(--gold-light); font-family: 'Cinzel', serif; font-size: 0.75rem; letter-spacing: 1px; padding: 7px 16px; border-radius: 2px; cursor: pointer; transition: all 0.2s; }
+    .btn:hover { background: var(--gold); color: var(--dark); }
+    .btn.danger { border-color: var(--accent-light); color: var(--accent-light); }
+    .btn.danger:hover { background: var(--accent-light); color: #fff; }
+    .btn.small { padding: 4px 10px; font-size: 0.7rem; }
+    .btn.icon-btn { padding: 4px 8px; min-width: 28px; }
+    input, select, textarea { background: var(--dark); border: 1px solid var(--border); color: var(--text); font-family: 'Cinzel', serif; font-size: 0.8rem; padding: 8px 10px; border-radius: 2px; width: 100%; transition: border-color 0.2s; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--gold); }
+    textarea { resize: vertical; min-height: 80px; }
+    select option { background: var(--panel); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-row.single { grid-template-columns: 1fr; }
+    label { display: block; font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
+    .xp-bar { height: 6px; background: var(--dark); border-radius: 3px; overflow: hidden; border: 1px solid var(--border); margin-top: 6px; }
+    .xp-fill { height: 100%; background: linear-gradient(to right, var(--gold), var(--gold-light)); border-radius: 3px; transition: width 0.5s; }
+    .hp-controls { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .hp-btn { background: var(--dark); border: 1px solid var(--border); color: var(--text); width: 26px; height: 26px; border-radius: 2px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+    .hp-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .hp-input { width: 50px !important; text-align: center; padding: 4px; height: 26px; }
+    .char-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .char-name { font-size: 1rem; color: var(--gold-light); letter-spacing: 1px; }
+    .char-class { font-family: 'IM Fell English', serif; font-style: italic; color: var(--muted); font-size: 0.85rem; }
+    .quest-step { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(90,62,27,0.3); }
+    .quest-step:last-child { border-bottom: none; }
+    .step-check { width: 14px; height: 14px; border: 1px solid var(--border); border-radius: 2px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .step-check.done { background: var(--gold); border-color: var(--gold); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: var(--panel); border: 1px solid var(--gold); border-radius: 4px; padding: 24px; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; box-shadow: 0 0 40px rgba(201,146,26,0.3); }
+    .modal-title { font-family: 'Cinzel Decorative', cursive; font-size: 0.9rem; color: var(--gold-light); margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .tag { display: inline-block; background: rgba(201,146,26,0.1); border: 1px solid rgba(201,146,26,0.3); color: var(--muted); font-size: 0.65rem; padding: 2px 6px; border-radius: 2px; letter-spacing: 1px; margin: 2px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .empty-state { text-align: center; color: var(--muted); font-family: 'IM Fell English', serif; font-style: italic; padding: 40px 0; font-size: 1rem; }
+    .note-date { font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; }
+    .note-title { color: var(--gold-light); margin: 4px 0 8px; }
+    .note-content { font-family: 'IM Fell English', serif; font-size: 0.9rem; line-height: 1.6; color: var(--text); }
+    .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .stat-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+    .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 12px 20px; text-align: center; flex: 1; min-width: 100px; }
+    .stat-num { font-family: 'Cinzel Decorative', cursive; font-size: 1.6rem; color: var(--gold-light); display: block; }
+    .stat-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 2px; }
+    .quest-title { font-size: 0.95rem; color: var(--gold-light); margin-bottom: 6px; letter-spacing: 1px; }
+    .quest-desc { font-family: 'IM Fell English', serif; font-style: italic; color: var(--muted); font-size: 0.85rem; margin-bottom: 12px; line-height: 1.5; }
+    .priority-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .priority-High { background: #ef4444; }
+    .priority-Medium { background: #f59e0b; }
+    .priority-Low { background: #6b7280; }
+    .scroll-ornament { text-align: center; color: var(--gold); opacity: 0.4; font-size: 1.2rem; margin: 8px 0; letter-spacing: 8px; }
+    .loading { display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Cinzel Decorative', cursive; color: var(--gold); font-size: 1rem; letter-spacing: 3px; }
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .form-row.three { grid-template-columns: 1fr; }
+      .stat-bar { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+    // ── Storage (localStorage for GitHub Pages) ─────────────────────────────
+    const STORAGE_KEY = "dnd-campaign-v1";
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    }
+    function saveData(data) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+      catch (e) { console.error("Save failed", e); }
+    }
+
+    // ── Constants ───────────────────────────────────────────────────────────
+    const RARITIES = ["Common", "Uncommon", "Rare", "Very Rare", "Legendary"];
+    const RARITY_COLOR = { Common: "#aaa", Uncommon: "#1eff00", Rare: "#0070dd", "Very Rare": "#a335ee", Legendary: "#ff8000" };
+    const ITEM_TYPES = ["Weapon", "Armor", "Consumable", "Wondrous Item", "Ring", "Staff", "Wand", "Tool", "Other"];
+    const QUEST_STATUSES = ["Active", "Completed", "Failed", "On Hold"];
+    const STATUS_COLOR = { Active: "#4ade80", Completed: "#60a5fa", Failed: "#f87171", "On Hold": "#facc15" };
+    const CLASSES = ["Barbarian","Bard","Cleric","Druid","Fighter","Monk","Paladin","Ranger","Rogue","Sorcerer","Warlock","Wizard","Artificer"];
+    const TABS = ["Overview", "Characters", "Items", "Quests", "Notes"];
+
+    const DEFAULT_STATE = {
+      campaignName: "The Chronicles of Eldoria",
+      characters: [
+        { id: 1, name: "Aric Stormwind",   class: "Ranger", level: 4, xp: 3200, hp: 38, maxHp: 38 },
+        { id: 2, name: "Lyra Moonwhisper", class: "Wizard", level: 4, xp: 3200, hp: 22, maxHp: 22 },
+      ],
+      items: [
+        { id: 1, name: "+1 Longsword",       type: "Weapon",     owner: "Aric Stormwind",   rarity: "Uncommon", notes: "Found in the Thornwood dungeon" },
+        { id: 2, name: "Scroll of Fireball", type: "Consumable", owner: "Lyra Moonwhisper", rarity: "Uncommon", notes: "" },
+      ],
+      quests: [
+        { id: 1, title: "The Missing Merchant", status: "Active", priority: "High",   description: "Investigate the disappearance of Aldric the trader from Millhaven. Last seen near the Darkmoor road.", steps: ["Talk to the innkeeper", "Search the Darkmoor road", "Report back to the Guild"] },
+        { id: 2, title: "Ruins of Vormath",     status: "Active", priority: "Medium", description: "Ancient ruins to the east contain a relic the Arcane Society needs.", steps: ["Acquire a map", "Clear the outer courtyard", "Find the relic chamber"] },
+      ],
+      notes: [
+        { id: 1, title: "Session 5 Notes", content: "Party reached Millhaven. Met innkeeper Bram. Discovered Aldric owed money to the Shadowhand guild. Lyra leveled up!", date: "2025-01-15" },
+      ],
+    };
+
+    // ── XP helpers ──────────────────────────────────────────────────────────
+    function xpForLevel(level) {
+      const t = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000];
+      return t[Math.min(level, t.length - 1)] || 85000;
+    }
+    function xpProgress(xp, level) {
+      const curr = xpForLevel(level - 1);
+      const next = xpForLevel(level);
+      return Math.min(100, Math.round(((xp - curr) / (next - curr)) * 100));
+    }
+
+    // ── Modal ───────────────────────────────────────────────────────────────
+    function Modal({ title, onClose, onSave, saveLabel = "Add", children }) {
+      return (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+          <div className="modal">
+            <div className="modal-title">✦ {title}</div>
+            {children}
+            <div className="modal-actions">
+              <button className="btn danger small" onClick={onClose}>Cancel</button>
+              <button className="btn small" onClick={onSave}>{saveLabel}</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Characters Tab ──────────────────────────────────────────────────────
+    function CharactersTab({ chars, setChars }) {
+      const [showModal, setShowModal] = useState(false);
+      const [editId, setEditId]       = useState(null);
+      const [form, setForm]           = useState({ name: "", class: "Fighter", level: 1, xp: 0, hp: 10, maxHp: 10 });
+
+      function openAdd() { setForm({ name: "", class: "Fighter", level: 1, xp: 0, hp: 10, maxHp: 10 }); setEditId(null); setShowModal(true); }
+      function openEdit(c) { setForm({ ...c }); setEditId(c.id); setShowModal(true); }
+      function save() {
+        if (!form.name.trim()) return;
+        if (editId) setChars(cs => cs.map(c => c.id === editId ? { ...form, id: editId } : c));
+        else        setChars(cs => [...cs, { ...form, id: Date.now() }]);
+        setShowModal(false);
+      }
+      function remove(id) { setChars(cs => cs.filter(c => c.id !== id)); }
+      function adjustHp(id, delta) {
+        setChars(cs => cs.map(c => c.id === id ? { ...c, hp: Math.max(0, Math.min(c.maxHp, c.hp + delta)) } : c));
+      }
+      function setHp(id, val) {
+        const n = parseInt(val); if (isNaN(n)) return;
+        setChars(cs => cs.map(c => c.id === id ? { ...c, hp: Math.max(0, Math.min(c.maxHp, n)) } : c));
+      }
+      function addXp(id, amount) {
+        setChars(cs => cs.map(c => {
+          if (c.id !== id) return c;
+          const newXp = c.xp + amount;
+          let lv = c.level;
+          while (lv < 20 && newXp >= xpForLevel(lv)) lv++;
+          return { ...c, xp: newXp, level: lv };
+        }));
+      }
+
+      return (
+        <div>
+          <div className="top-row">
+            <div className="section-title" style={{ margin:0, border:"none", padding:0 }}>Party Members</div>
+            <button className="btn small" onClick={openAdd}>+ Add Character</button>
+          </div>
+          {chars.length === 0 && <div className="empty-state">No adventurers yet. Assemble your party!</div>}
+          <div className="grid-2">
+            {chars.map(c => {
+              const pct = xpProgress(c.xp, c.level);
+              return (
+                <div className="card" key={c.id}>
+                  <div className="char-header">
+                    <div>
+                      <div className="char-name">{c.name}</div>
+                      <div className="char-class">{c.class} — Level {c.level}</div>
+                    </div>
+                    <div style={{ display:"flex", gap:4 }}>
+                      <button className="btn icon-btn small" onClick={() => openEdit(c)}>✎</button>
+                      <button className="btn icon-btn small danger" onClick={() => remove(c.id)}>✕</button>
+                    </div>
+                  </div>
+                  <hr className="divider" />
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize:"0.7rem", color:"var(--muted)", letterSpacing:1 }}>HIT POINTS</span>
+                    <span style={{ color: c.hp <= c.maxHp*0.25 ? "#ef4444" : c.hp <= c.maxHp*0.5 ? "#f59e0b" : "var(--green)", fontFamily:"Cinzel Decorative", fontSize:"0.85rem" }}>{c.hp} / {c.maxHp}</span>
+                  </div>
+                  <div className="hp-controls">
+                    <button className="hp-btn" onClick={() => adjustHp(c.id, -1)}>−</button>
+                    <input className="hp-input" type="number" value={c.hp} onChange={e => setHp(c.id, e.target.value)} />
+                    <button className="hp-btn" onClick={() => adjustHp(c.id,  1)}>+</button>
+                    <button className="btn small" style={{ marginLeft:4 }} onClick={() => setChars(cs => cs.map(x => x.id === c.id ? { ...x, hp: x.maxHp } : x))}>Full Heal</button>
+                  </div>
+                  <hr className="divider" />
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize:"0.7rem", color:"var(--muted)", letterSpacing:1 }}>EXPERIENCE</span>
+                    <span style={{ fontSize:"0.75rem", color:"var(--gold)" }}>{c.xp.toLocaleString()} XP · {pct}% to Lv{c.level + 1}</span>
+                  </div>
+                  <div className="xp-bar"><div className="xp-fill" style={{ width: pct+"%" }} /></div>
+                  <div style={{ display:"flex", gap:6, marginTop:8 }}>
+                    {[50,100,250,500].map(n => (
+                      <button key={n} className="btn small" onClick={() => addXp(c.id, n)}>+{n}</button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {showModal && (
+            <Modal title={editId ? "Edit Character" : "New Character"} onClose={() => setShowModal(false)} onSave={save} saveLabel={editId ? "Save" : "Add"}>
+              <div className="form-row single"><label>NAME</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Character name" /></div>
+              <div className="form-row">
+                <div><label>CLASS</label><select value={form.class} onChange={e => setForm(f => ({ ...f, class: e.target.value }))}>{CLASSES.map(c => <option key={c}>{c}</option>)}</select></div>
+                <div><label>LEVEL</label><input type="number" min={1} max={20} value={form.level} onChange={e => setForm(f => ({ ...f, level: +e.target.value }))} /></div>
+              </div>
+              <div className="form-row">
+                <div><label>CURRENT HP</label><input type="number" min={0} value={form.hp}    onChange={e => setForm(f => ({ ...f, hp:    +e.target.value }))} /></div>
+                <div><label>MAX HP</label>    <input type="number" min={1} value={form.maxHp} onChange={e => setForm(f => ({ ...f, maxHp: +e.target.value }))} /></div>
+              </div>
+              <div className="form-row single"><label>EXPERIENCE POINTS</label><input type="number" min={0} value={form.xp} onChange={e => setForm(f => ({ ...f, xp: +e.target.value }))} /></div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    // ── Items Tab ───────────────────────────────────────────────────────────
+    function ItemsTab({ items, setItems, chars }) {
+      const [showModal, setShowModal] = useState(false);
+      const [editId, setEditId]       = useState(null);
+      const [filter, setFilter]       = useState("All");
+      const [form, setForm]           = useState({ name: "", type: "Weapon", owner: "", rarity: "Common", notes: "" });
+
+      function openAdd()  { setForm({ name: "", type: "Weapon", owner: "", rarity: "Common", notes: "" }); setEditId(null); setShowModal(true); }
+      function openEdit(i) { setForm({ ...i }); setEditId(i.id); setShowModal(true); }
+      function save() {
+        if (!form.name.trim()) return;
+        if (editId) setItems(is => is.map(i => i.id === editId ? { ...form, id: editId } : i));
+        else        setItems(is => [...is, { ...form, id: Date.now() }]);
+        setShowModal(false);
+      }
+      function remove(id) { setItems(is => is.filter(i => i.id !== id)); }
+
+      const types    = ["All", ...ITEM_TYPES];
+      const filtered = filter === "All" ? items : items.filter(i => i.type === filter);
+
+      return (
+        <div>
+          <div className="top-row">
+            <div className="section-title" style={{ margin:0, border:"none", padding:0 }}>Inventory</div>
+            <button className="btn small" onClick={openAdd}>+ Add Item</button>
+          </div>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:16 }}>
+            {types.map(t => (
+              <button key={t} className="btn small" style={filter === t ? { background:"var(--gold)", color:"var(--dark)" } : {}} onClick={() => setFilter(t)}>{t}</button>
+            ))}
+          </div>
+          {filtered.length === 0 && <div className="empty-state">No items found. The party travels light.</div>}
+          <div className="grid-3">
+            {filtered.map(item => (
+              <div className="card" key={item.id}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ color: RARITY_COLOR[item.rarity]||"var(--text)", fontSize:"0.9rem", letterSpacing:1, marginBottom:4 }}>{item.name}</div>
+                    <span className="badge" style={{ color: RARITY_COLOR[item.rarity]||"var(--muted)", borderColor: RARITY_COLOR[item.rarity]||"var(--border)" }}>{item.rarity}</span>
+                    <span className="tag" style={{ marginLeft:4 }}>{item.type}</span>
+                  </div>
+                  <div style={{ display:"flex", gap:4, marginLeft:8 }}>
+                    <button className="btn icon-btn small" onClick={() => openEdit(item)}>✎</button>
+                    <button className="btn icon-btn small danger" onClick={() => remove(item.id)}>✕</button>
+                  </div>
+                </div>
+                {item.owner && <div style={{ marginTop:8, fontSize:"0.7rem", color:"var(--muted)", letterSpacing:1 }}>Wielded by <span style={{ color:"var(--gold-light)" }}>{item.owner}</span></div>}
+                {item.notes && <div style={{ marginTop:6, fontFamily:"IM Fell English, serif", fontStyle:"italic", fontSize:"0.8rem", color:"var(--muted)", lineHeight:1.4 }}>{item.notes}</div>}
+              </div>
+            ))}
+          </div>
+          {showModal && (
+            <Modal title={editId ? "Edit Item" : "New Item"} onClose={() => setShowModal(false)} onSave={save} saveLabel={editId ? "Save" : "Add"}>
+              <div className="form-row single"><label>ITEM NAME</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. +2 Shortsword" /></div>
+              <div className="form-row">
+                <div><label>TYPE</label>  <select value={form.type}   onChange={e => setForm(f => ({ ...f, type:   e.target.value }))}>{ITEM_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
+                <div><label>RARITY</label><select value={form.rarity} onChange={e => setForm(f => ({ ...f, rarity: e.target.value }))}>{RARITIES.map(r   => <option key={r}>{r}</option>)}</select></div>
+              </div>
+              <div className="form-row single">
+                <label>OWNER</label>
+                <select value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))}>
+                  <option value="">— Party / Unassigned —</option>
+                  {chars.map(c => <option key={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="form-row single"><label>NOTES</label><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Where was it found? Any special properties?" /></div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    // ── Quests Tab ──────────────────────────────────────────────────────────
+    function QuestsTab({ quests, setQuests }) {
+      const [showModal, setShowModal] = useState(false);
+      const [editId, setEditId]       = useState(null);
+      const [stepDone, setStepDone]   = useState({});
+      const [form, setForm]           = useState({ title: "", status: "Active", priority: "Medium", description: "", steps: [""] });
+
+      function openAdd()   { setForm({ title: "", status: "Active", priority: "Medium", description: "", steps: [""] }); setEditId(null); setShowModal(true); }
+      function openEdit(q) { setForm({ ...q, steps: [...q.steps] }); setEditId(q.id); setShowModal(true); }
+      function save() {
+        if (!form.title.trim()) return;
+        const steps = form.steps.filter(s => s.trim());
+        if (editId) setQuests(qs => qs.map(q => q.id === editId ? { ...form, steps, id: editId } : q));
+        else        setQuests(qs => [...qs, { ...form, steps, id: Date.now() }]);
+        setShowModal(false);
+      }
+      function remove(id) { setQuests(qs => qs.filter(q => q.id !== id)); }
+      function toggleStep(qId, si) { setStepDone(d => ({ ...d, [`${qId}-${si}`]: !d[`${qId}-${si}`] })); }
+
+      function QuestCard({ q }) {
+        return (
+          <div className="card">
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+              <div style={{ flex:1 }}>
+                <div style={{ display:"flex", alignItems:"center", marginBottom:4 }}>
+                  <span className={`priority-dot priority-${q.priority}`} />
+                  <span className="quest-title">{q.title}</span>
+                </div>
+                <div style={{ display:"flex", gap:6, marginBottom:8 }}>
+                  <span className="badge" style={{ color: STATUS_COLOR[q.status]||"var(--muted)", borderColor: STATUS_COLOR[q.status]||"var(--border)" }}>{q.status}</span>
+                  <span className="tag">{q.priority} Priority</span>
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:4 }}>
+                <button className="btn icon-btn small" onClick={() => openEdit(q)}>✎</button>
+                <button className="btn icon-btn small danger" onClick={() => remove(q.id)}>✕</button>
+              </div>
+            </div>
+            {q.description && <p className="quest-desc">{q.description}</p>}
+            {q.steps.length > 0 && (
+              <div>
+                <div style={{ fontSize:"0.65rem", color:"var(--muted)", letterSpacing:2, marginBottom:6 }}>OBJECTIVES</div>
+                {q.steps.map((s, i) => {
+                  const done = stepDone[`${q.id}-${i}`];
+                  return (
+                    <div className="quest-step" key={i}>
+                      <div className={`step-check${done ? " done" : ""}`} onClick={() => toggleStep(q.id, i)}>
+                        {done && <span style={{ color:"var(--dark)", fontSize:"0.6rem" }}>✓</span>}
+                      </div>
+                      <span style={{ fontSize:"0.8rem", fontFamily:"IM Fell English, serif", textDecoration: done?"line-through":"none", color: done?"var(--muted)":"var(--text)", lineHeight:1.4 }}>{s}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      const active = quests.filter(q => q.status === "Active");
+      const other  = quests.filter(q => q.status !== "Active");
+
+      return (
+        <div>
+          <div className="top-row">
+            <div className="section-title" style={{ margin:0, border:"none", padding:0 }}>Quests &amp; Objectives</div>
+            <button className="btn small" onClick={openAdd}>+ Add Quest</button>
+          </div>
+          {quests.length === 0 && <div className="empty-state">No quests yet. Adventure awaits!</div>}
+          {active.length > 0 && <>
+            <div className="section-title">Active Quests</div>
+            <div className="grid-2">{active.map(q => <QuestCard key={q.id} q={q} />)}</div>
+          </>}
+          {other.length > 0 && <>
+            <div className="section-title" style={{ marginTop:24 }}>Completed / Other</div>
+            <div className="grid-2">{other.map(q => <QuestCard key={q.id} q={q} />)}</div>
+          </>}
+          {showModal && (
+            <Modal title={editId ? "Edit Quest" : "New Quest"} onClose={() => setShowModal(false)} onSave={save} saveLabel={editId ? "Save" : "Add"}>
+              <div className="form-row single"><label>QUEST TITLE</label><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. The Stolen Artifact" /></div>
+              <div className="form-row">
+                <div><label>STATUS</label>  <select value={form.status}   onChange={e => setForm(f => ({ ...f, status:   e.target.value }))}>{QUEST_STATUSES.map(s => <option key={s}>{s}</option>)}</select></div>
+                <div><label>PRIORITY</label><select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>{["High","Medium","Low"].map(p => <option key={p}>{p}</option>)}</select></div>
+              </div>
+              <div className="form-row single"><label>DESCRIPTION</label><textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What's the hook for this quest?" /></div>
+              <div style={{ marginBottom:10 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                  <label style={{ margin:0 }}>OBJECTIVES / STEPS</label>
+                  <button className="btn small" onClick={() => setForm(f => ({ ...f, steps: [...f.steps, ""] }))}>+ Step</button>
+                </div>
+                {form.steps.map((s, i) => (
+                  <div key={i} style={{ display:"flex", gap:6, marginBottom:6 }}>
+                    <input value={s} onChange={e => setForm(f => { const st=[...f.steps]; st[i]=e.target.value; return {...f, steps:st}; })} placeholder={`Step ${i+1}`} />
+                    <button className="btn icon-btn small danger" onClick={() => setForm(f => ({ ...f, steps: f.steps.filter((_,j)=>j!==i) }))}>✕</button>
+                  </div>
+                ))}
+              </div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    // ── Notes Tab ───────────────────────────────────────────────────────────
+    function NotesTab({ notes, setNotes }) {
+      const [showModal, setShowModal] = useState(false);
+      const [editId, setEditId]       = useState(null);
+      const [form, setForm]           = useState({ title: "", content: "", date: new Date().toISOString().slice(0,10) });
+
+      function openAdd()   { setForm({ title:"", content:"", date: new Date().toISOString().slice(0,10) }); setEditId(null); setShowModal(true); }
+      function openEdit(n) { setForm({ ...n }); setEditId(n.id); setShowModal(true); }
+      function save() {
+        if (!form.title.trim()) return;
+        if (editId) setNotes(ns => ns.map(n => n.id === editId ? { ...form, id: editId } : n));
+        else        setNotes(ns => [{ ...form, id: Date.now() }, ...ns]);
+        setShowModal(false);
+      }
+      function remove(id) { setNotes(ns => ns.filter(n => n.id !== id)); }
+
+      return (
+        <div>
+          <div className="top-row">
+            <div className="section-title" style={{ margin:0, border:"none", padding:0 }}>Session Notes</div>
+            <button className="btn small" onClick={openAdd}>+ New Note</button>
+          </div>
+          {notes.length === 0 && <div className="empty-state">The chronicles are empty. Record your first session!</div>}
+          <div className="grid-2">
+            {notes.map(n => (
+              <div className="card" key={n.id}>
+                <div style={{ display:"flex", justifyContent:"space-between" }}>
+                  <div className="note-date">{n.date}</div>
+                  <div style={{ display:"flex", gap:4 }}>
+                    <button className="btn icon-btn small" onClick={() => openEdit(n)}>✎</button>
+                    <button className="btn icon-btn small danger" onClick={() => remove(n.id)}>✕</button>
+                  </div>
+                </div>
+                <div className="note-title">{n.title}</div>
+                <div className="note-content">{n.content}</div>
+              </div>
+            ))}
+          </div>
+          {showModal && (
+            <Modal title={editId ? "Edit Note" : "New Session Note"} onClose={() => setShowModal(false)} onSave={save} saveLabel={editId ? "Save" : "Add"}>
+              <div className="form-row">
+                <div><label>TITLE</label><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Session 6 — The Dark Forest" /></div>
+                <div><label>DATE</label> <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
+              </div>
+              <div className="form-row single"><label>NOTES</label><textarea style={{ minHeight:160 }} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="What happened this session? Key NPCs, discoveries, decisions..." /></div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    // ── Overview Tab ────────────────────────────────────────────────────────
+    function OverviewTab({ chars, items, quests, notes, campaignName, setCampaignName }) {
+      const [editing, setEditing]     = useState(false);
+      const [nameInput, setNameInput] = useState(campaignName);
+      const activeQuests = quests.filter(q => q.status === "Active");
+
+      return (
+        <div>
+          <div style={{ textAlign:"center", marginBottom:28 }}>
+            {editing ? (
+              <div style={{ display:"flex", gap:8, justifyContent:"center", alignItems:"center" }}>
+                <input value={nameInput} onChange={e => setNameInput(e.target.value)} style={{ maxWidth:300, textAlign:"center", fontSize:"1rem" }} />
+                <button className="btn small" onClick={() => { setCampaignName(nameInput); setEditing(false); }}>Save</button>
+              </div>
+            ) : (
+              <div onClick={() => { setEditing(true); setNameInput(campaignName); }} style={{ cursor:"pointer" }}>
+                <div style={{ fontFamily:"Cinzel Decorative, cursive", fontSize:"1.2rem", color:"var(--gold-light)", letterSpacing:3, textShadow:"0 0 30px rgba(201,146,26,0.5)" }}>{campaignName}</div>
+                <div style={{ fontSize:"0.65rem", color:"var(--muted)", letterSpacing:2, marginTop:4 }}>click to rename</div>
+              </div>
+            )}
+          </div>
+          <div className="scroll-ornament">✦ ✦ ✦</div>
+          <div className="stat-bar">
+            <div className="stat"><span className="stat-num">{chars.length}</span><span className="stat-label">ADVENTURERS</span></div>
+            <div className="stat"><span className="stat-num">{items.length}</span><span className="stat-label">ITEMS</span></div>
+            <div className="stat"><span className="stat-num">{activeQuests.length}</span><span className="stat-label">ACTIVE QUESTS</span></div>
+            <div className="stat"><span className="stat-num">{notes.length}</span><span className="stat-label">SESSIONS</span></div>
+          </div>
+          {chars.length > 0 && <>
+            <div className="section-title">Party Status</div>
+            <div className="grid-2" style={{ marginBottom:24 }}>
+              {chars.map(c => {
+                const pct   = xpProgress(c.xp, c.level);
+                const hpPct = Math.round((c.hp / c.maxHp) * 100);
+                return (
+                  <div className="card" key={c.id}>
+                    <div style={{ display:"flex", justifyContent:"space-between" }}>
+                      <div>
+                        <div className="char-name" style={{ fontSize:"0.9rem" }}>{c.name}</div>
+                        <div className="char-class">{c.class} Lv{c.level}</div>
+                      </div>
+                      <div style={{ fontFamily:"Cinzel Decorative", fontSize:"0.8rem", color: c.hp<=c.maxHp*0.25?"#ef4444":"var(--green)" }}>{c.hp}/{c.maxHp} HP</div>
+                    </div>
+                    <div style={{ marginTop:8 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:"0.65rem", color:"var(--muted)", marginBottom:3 }}><span>HP</span><span>{hpPct}%</span></div>
+                      <div className="xp-bar"><div style={{ height:"100%", background: c.hp<=c.maxHp*0.25?"#ef4444":"var(--green)", borderRadius:3, width:hpPct+"%" }} /></div>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:"0.65rem", color:"var(--muted)", marginBottom:3, marginTop:6 }}><span>XP to Next Level</span><span>{pct}%</span></div>
+                      <div className="xp-bar"><div className="xp-fill" style={{ width:pct+"%" }} /></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>}
+          {activeQuests.length > 0 && <>
+            <div className="section-title">Active Quests</div>
+            <div className="grid-2">
+              {activeQuests.map(q => (
+                <div className="card" key={q.id}>
+                  <div style={{ display:"flex", alignItems:"center", marginBottom:6 }}>
+                    <span className={`priority-dot priority-${q.priority}`} />
+                    <span className="quest-title" style={{ fontSize:"0.85rem" }}>{q.title}</span>
+                  </div>
+                  <p className="quest-desc" style={{ margin:0 }}>{q.description}</p>
+                  {q.steps.slice(0,2).map((s,i) => <div key={i} style={{ fontSize:"0.75rem", color:"var(--muted)", fontFamily:"IM Fell English, serif", fontStyle:"italic", marginTop:4 }}>• {s}</div>)}
+                </div>
+              ))}
+            </div>
+          </>}
+        </div>
+      );
+    }
+
+    // ── App Root ────────────────────────────────────────────────────────────
+    function App() {
+      const [tab,    setTab]    = useState("Overview");
+      const [loaded, setLoaded] = useState(false);
+      const [data,   setData]   = useState(DEFAULT_STATE);
+
+      useEffect(() => {
+        const saved = loadData();
+        if (saved) setData(saved);
+        setLoaded(true);
+      }, []);
+
+      const update = useCallback((key, val) => {
+        setData(d => {
+          const next = { ...d, [key]: typeof val === "function" ? val(d[key]) : val };
+          saveData(next);
+          return next;
+        });
+      }, []);
+
+      if (!loaded) return <div className="loading">Loading the chronicles…</div>;
+
+      return (
+        <div className="app">
+          <div className="header">
+            <div>
+              <h1>⚔ Dungeon Codex</h1>
+              <div className="header-subtitle">Campaign Management System</div>
+            </div>
+            <div style={{ fontSize:"0.7rem", color:"var(--muted)", letterSpacing:1 }}>Auto-saved ✦</div>
+          </div>
+          <nav className="nav">
+            {TABS.map(t => (
+              <button key={t} className={`nav-btn${tab===t?" active":""}`} onClick={() => setTab(t)}>{t}</button>
+            ))}
+          </nav>
+          <div className="content">
+            {tab === "Overview"    && <OverviewTab   chars={data.characters} items={data.items} quests={data.quests} notes={data.notes} campaignName={data.campaignName} setCampaignName={v => update("campaignName", v)} />}
+            {tab === "Characters"  && <CharactersTab chars={data.characters} setChars={v => update("characters", v)} />}
+            {tab === "Items"       && <ItemsTab      items={data.items}      setItems={v => update("items",      v)} chars={data.characters} />}
+            {tab === "Quests"      && <QuestsTab     quests={data.quests}    setQuests={v => update("quests",    v)} />}
+            {tab === "Notes"       && <NotesTab      notes={data.notes}      setNotes={v => update("notes",     v)} />}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
